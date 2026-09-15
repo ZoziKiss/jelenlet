@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biztonságos Dinamikus QR-Kód</title>
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
+        .container { background: white; padding: 30px; display: inline-block; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        #timer { color: #e74c3c; font-weight: bold; margin-bottom: 10px; }
+        #qr-info { margin-top: 15px; font-size: 12px; color: #777; max-width: 300px; word-break: break-all; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Jelenlét Igazolás</h2>
+    <div id="timer">Kód frissül: -- mp múlva</div>
+    <canvas id="qr-code"></canvas>
+    <div id="qr-info">Inicializálás...</div>
+</div>
+<script>
+    const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!"; 
+    const IDO_ABLAK_MASODPERC = 30;
+    const qr = new QRious({ element: document.getElementById('qr-code'), size: 260 });
+    async function sha256(szoveg) {
+        const msgBuffer = new TextEncoder().encode(szoveg);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    async function frissitRendszer() {
+        const most = new Date();
+        const epochIdo = Math.floor(most.getTime() / 1000);
+        const aktualisBlokk = Math.floor(epochIdo / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
+        const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
+        const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
+        const qrTartalom = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
+        qr.value = qrTartalom;
+        document.getElementById('qr-info').innerText = `Beolvasandó adat:\n${qrTartalom}`;
+    }
+    function visszaszamlaloFrissites() {
+        const most = new Date();
+        const masodperc = most.getSeconds();
+        const hatraVan = IDO_ABLAK_MASODPERC - (masodperc % IDO_ABLAK_MASODPERC);
+        document.getElementById('timer').innerText = `Kód frissül: ${hatraVan} mp múlva`;
+        if (hatraVan === IDO_ABLAK_MASODPERC || document.getElementById('qr-info').innerText.includes("Inicializálás")) {
+            frissitRendszer();
+        }
+    }
+    setInterval(visszaszamlaloFrissites, 1000);
+    visszaszamlaloFrissites();
+</script>
+</body>
+</html>
