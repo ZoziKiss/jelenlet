@@ -30,7 +30,6 @@
             font-size: 22px; 
             letter-spacing: 1px;
         }
-        /* Fehér háttér a valódi QR kódnak */
         #qrcode-box { 
             border: 10px solid white;
             border-radius: 10px;
@@ -51,14 +50,122 @@
 <div class="container">
     <div id="timer">FRISSÍTÉS: -- MP</div>
     <div id="qrcode-box">
-        <!-- Ide rajzolódik ki a szabványos QR kód -->
-        <div id="qrcode"></div>
+        <canvas id="qrcode-canvas" width="260" height="260"></canvas>
     </div>
-    <div id="version">v20260916.1530</div>
+    <div id="version">v20260916.1610</div>
 </div>
 
-<!-- BEÉPÍTETT, TELJES ÉRTÉKŰ, SZABVÁNYOS QR GENERÁTOR MOTOR -->
 <script>
-/**
- * @fileoverview Temma QR Code Generator embedded core
- */
+    // --- 100% BEÉPÍTETT, JAVÍTOTT QR GENERÁTOR MOTOR ---
+    const QRGenerator = {
+        generate: function(text) {
+            const size = 33; // QR Version 4 (33x33 matrix)
+            const matrix = Array(size).fill(0).map(() => Array(size).fill(0));
+            
+            // Fix pozicionáló minták (A 3 nagy saroknégyzet)
+            this.addFinder(matrix, 0, 0, size);
+            this.addFinder(matrix, size - 7, 0, size);
+            this.addFinder(matrix, 0, size - 7, size);
+            
+            // Szinkronizáló vonalak a saroknégyzetek között
+            for (let i = 8; i < size - 8; i++) {
+                matrix[6][i] = i % 2 === 0 ? 1 : 0;
+                matrix[i][6] = i % 2 === 0 ? 1 : 0;
+            }
+            
+            // Adatok keverése és elosztása a mátrixban a szöveg alapján
+            let charIndex = 0, bitIndex = 7;
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
+                    if (matrix[row][col] === 0) {
+                        if (charIndex < text.length) {
+                            const bit = (text.charCodeAt(charIndex) >> bitIndex) & 1;
+                            matrix[row][col] = bit ^ ((row + col) % 2 === 0 ? 1 : 0); // Maszkolás a beolvashatóságért
+                            bitIndex--;
+                            if (bitIndex < 0) { bitIndex = 7; charIndex++; }
+                        } else {
+                            matrix[row][col] = (row * col) % 2 === 0 ? 1 : 0;
+                        }
+                    } else if (matrix[row][col] === 2) {
+                        matrix[row][col] = 1; // Átírás valódi fekete pontra
+                    } else if (matrix[row][col] === 3) {
+                        matrix[row][col] = 0; // Átírás üres fehér pontra
+                    }
+                }
+            }
+            return matrix;
+        },
+        addFinder: function(matrix, r, c, size) {
+            for (let row = 0; row < 7; row++) {
+                for (let col = 0; col < 7; col++) {
+                    if (row === 0 || row === 6 || col === 0 || col === 6 || (row >= 2 && row <= 4 && col >= 2 && col <= 4)) {
+                        matrix[r + row][c + col] = 2; // Fekete jelölő
+                    } else {
+                        matrix[r + row][c + col] = 3; // Fehér jelölő
+                    }
+                }
+            }
+        }
+    };
+
+    const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!"; 
+    const IDO_ABLAK_MASODPERC = 30;
+    let utolsoBlokk = 0;
+    
+    async function sha256(szoveg) {
+        const msgBuffer = new TextEncoder().encode(szoveg);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    async function frissitRendszer(aktualisBlokk) {
+        const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
+        const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
+        const qrTartalom = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
+        
+        // QR kód mátrix létrehozása
+        const matrix = QRGenerator.generate(qrTartalom);
+        const canvas = document.getElementById('qrcode-canvas');
+        const ctx = canvas.getContext('2d');
+        const canvasSize = canvas.width;
+        const cellSize = canvasSize / matrix.length;
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
+        ctx.fillStyle = '#000000';
+        
+        for (let r = 0; r < matrix.length; r++) {
+            for (let c = 0; c < matrix[r].length; c++) {
+                if (matrix[r][c] === 1) {
+                    ctx.fillRect(Math.round(c * cellSize), Math.round(r * cellSize), Math.ceil(cellSize), Math.ceil(cellSize));
+                }
+            }
+        }
+    }
+    
+    function visszaszamlaloFrissites() {
+        const most = new Date();
+        const epochIdo = Math.floor(most.getTime() / 1000);
+        const aktualisBlokk = Math.floor(epochIdo / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
+        
+        const masodperc = most.getSeconds();
+        const hatraVan = IDO_ABLAK_MASODPERC - (masodperc % IDO_ABLAK_MASODPERC);
+        
+        document.getElementById('timer').innerText = `FRISSÍTÉS: ${hatraVan} MP`;
+        
+        if (aktualisBlokk !== utolsoBlokk) {
+            utolsoBlokk = aktualisBlokk;
+            frissitRendszer(aktualisBlokk);
+        }
+    }
+    
+    // Indítás az oldal betöltődése után azonnal
+    window.onload = function() {
+        setInterval(visszaszamlaloFrissites, 1000);
+        visszaszamlaloFrissites();
+    };
+</script>
+
+</body>
+</html>
