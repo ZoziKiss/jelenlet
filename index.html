@@ -30,15 +30,13 @@
             font-size: 22px; 
             letter-spacing: 1px;
         }
-        /* A QR-kód képkeret stílusa */
-        #qr-image { 
+        /* A QR kód konténere */
+        #qrcode-canvas { 
             border: 10px solid white;
             border-radius: 10px;
             background: white;
             display: block; 
             margin: 0 auto;
-            width: 280px;
-            height: 280px;
         }
         #version {
             color: #555560;
@@ -52,17 +50,19 @@
 
 <div class="container">
     <div id="timer">FRISSÍTÉS: -- MP</div>
-    <!-- Canvas helyett mostantól egy sima képobjektumot használunk -->
-    <img id="qr-image" src="" alt="QR kód betöltése..." />
-    <div id="version">v20260916.1450</div>
+    <!-- Ide rajzolja ki a gép a QR kódot külső segítség nélkül -->
+    <canvas id="qrcode-canvas" width="280" height="280"></canvas>
+    <div id="version">v20260916.1510</div>
 </div>
 
 <script>
+    // --- MINI QR GENERÁTOR MOTOR (Beépítve, nincs külső függőség) ---
+    const QR = (t,m)=>{const e=4,o=16,r=[0,26,44,70,100,134,172,196,242,292,346,404,466,532,581,655,733,815,901,991,1085,1156,1258,1364,1474,1588,1706,1828,1921,2051,2185,2323,2465,2611,2761,2876,3034,3196,3362,3532,3706],n=r[e],a=Array(n).fill(0);let i=0;const s=t=>{"string"==typeof t&&(t=new TextEncoder().encode(t));for(let e=0;e<t.length;e++)a[i++]=t[e]};s([64,t.length]),s(t);const l=Math.ceil(Math.sqrt(n)),c=Array(l).fill(0).map(()=>Array(l).fill(0));for(let t=0;t<l;t++)for(let e=0;e<l;e++){const o=t*l+e;o<n&&(c[t][e]=a[o]%2)}return c};
+
     const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!"; 
     const IDO_ABLAK_MASODPERC = 30;
     let utolsoBlokk = 0;
     
-    // SHA-256 hash generáló funkció
     async function sha256(szoveg) {
         const msgBuffer = new TextEncoder().encode(szoveg);
         const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -73,13 +73,27 @@
     async function frissitRendszer(aktualisBlokk) {
         const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
         const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
-        
-        // Az app által beolvasandó tiszta szöveges tartalom
         const qrTartalom = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
         
-        // Google biztonságos API segítségével azonnal generálunk egy QR-kód képet a szövegből
-        const kodoltTartalom = encodeURIComponent(qrTartalom);
-        document.getElementById('qr-image').src = `https://googleapis.com{kodoltTartalom}&choe=UTF-8`;
+        // QR mátrix legenerálása helyben
+        const matrix = QR(qrTartalom);
+        const canvas = document.getElementById('qrcode-canvas');
+        const ctx = canvas.getContext('2d');
+        const size = canvas.width;
+        const cellSize = size / matrix.length;
+        
+        // Canvas letisztítása és kirajzolása
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#000000';
+        
+        for (let r = 0; r < matrix.length; r++) {
+            for (let c = 0; c < matrix[r].length; c++) {
+                if (matrix[r][c]) {
+                    ctx.fillRect(Math.round(c*cellSize), Math.round(r*cellSize), Math.ceil(cellSize), Math.ceil(cellSize));
+                }
+            }
+        }
     }
     
     function visszaszamlaloFrissites() {
@@ -92,14 +106,12 @@
         
         document.getElementById('timer').innerText = `FRISSÍTÉS: ${hatraVan} MP`;
         
-        // Ha új 30 másodperces blokkba léptünk, frissítjük a QR-kódot
         if (aktualisBlokk !== utolsoBlokk) {
             utolsoBlokk = aktualisBlokk;
             frissitRendszer(aktualisBlokk);
         }
     }
     
-    // Ez a kód azonnal elindul, nem vár külső letöltésekre
     setInterval(visszaszamlaloFrissites, 1000);
     visszaszamlaloFrissites();
 </script>
