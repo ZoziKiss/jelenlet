@@ -55,14 +55,32 @@
 <div class="container">
     <div id="timer">FRISSÍTÉS: -- MP</div>
     <div id="qrcode-box"></div>
-    <div id="version">v20260916.1639</div>
+    <div id="version">v20260916.1830</div>
 </div>
 
 <script>
+    const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!";
     const FIX_SZOVEG = "KapCarKsz";
     const IDO_ABLAK_MASODPERC = 30;
     let utolsoBlokk = 0;
     let qrObjektum = null;
+
+    // Valódi HMAC-SHA256 számítás a Web Crypto API-val.
+    // Ehhez ismerni kell a TITKOS_KULCS pontos értékét, fejben vagy
+    // egyszerű szorzással nem reprodukálható.
+    async function hmacSha256(kulcs, uzenet) {
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey(
+            'raw',
+            encoder.encode(kulcs),
+            { name: 'HMAC', hash: 'SHA-256' },
+            false,
+            ['sign']
+        );
+        const alairas = await crypto.subtle.sign('HMAC', key, encoder.encode(uzenet));
+        const byteTomb = Array.from(new Uint8Array(alairas));
+        return byteTomb.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
     // Valódi, szabványos, minden telefonos kamera/olvasó által beolvasható
     // QR-kód rajzolása a qrcodejs könyvtárral
@@ -84,8 +102,8 @@
         }
     }
 
-    // Dátum + idő + dinamikus ellenőrzőkód összeállítása
-    function frissitRendszer(most) {
+    // Dátum + idő + dinamikus, HMAC-SHA256 alapú ellenőrzőkód összeállítása
+    async function frissitRendszer(most) {
         const ev = most.getFullYear();
         const honap = String(most.getMonth() + 1).padStart(2, '0');
         const nap = String(most.getDate()).padStart(2, '0');
@@ -96,14 +114,14 @@
         const datumSzoveg = `${ev}.${honap}.${nap}.`;
         const idoSzoveg = `${String(ora).padStart(2, '0')}:${String(perc).padStart(2, '0')}`;
 
-        // Dátumszám és időszám szorzata adja az ellenőrzőkód alapját
+        // Az üzenet, amit aláírunk: dátum-idő blokk + fix szöveg (belső só)
         const datumSzam = ev * 10000 + (most.getMonth() + 1) * 100 + most.getDate();
         const idoSzam = ora * 10000 + perc * 100 + masodperc;
-        const szorzat = datumSzam * idoSzam;
+        const uzenet = `${datumSzam}-${idoSzam}-${FIX_SZOVEG}`;
 
-        // A szorzat utolsó 6 számjegye + fix szöveg = ellenőrzőkód
-        const szorzatVeg = String(szorzat).slice(-6).padStart(6, '0');
-        const ellenorzoKod = `${szorzatVeg}${FIX_SZOVEG}`;
+        // A HMAC-SHA256 hash első 8 karaktere lesz az ellenőrzőkód
+        const hash = await hmacSha256(TITKOS_KULCS, uzenet);
+        const ellenorzoKod = hash.substring(0, 8);
 
         const qrTartalom = `${datumSzoveg} ${idoSzoveg} ${ellenorzoKod}`;
 
