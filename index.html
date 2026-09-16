@@ -3,31 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biztonságos Dinamikus QR-Kód</title>
-    <!-- Javított, stabilabb elérésű QR-kód könyvtár -->
-  <script src="https://unpkg.com"></script>
+    <title>Beléptető Rendszer</title>
+    <!-- JAVÍTOTT SOR: Most már a teljes elérést használjuk -->
+    <script src="https://unpkg.com"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
-        .container { background: white; padding: 30px; display: inline-block; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); min-width: 280px; }
-        #timer { color: #e74c3c; font-weight: bold; margin-bottom: 15px; font-size: 18px; }
-        #qr-info { margin-top: 15px; font-size: 12px; color: #777; max-width: 300px; word-break: break-all; }
-        canvas { margin: 10px auto; display: block; }
+        /* Modern, sötét dizájn, hogy szoftvernek tűnjön */
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background-color: #121214; 
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container { 
+            background: #1e1e24; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            display: inline-block;
+        }
+        #timer { 
+            color: #ff4757; 
+            font-weight: bold; 
+            margin-bottom: 25px; 
+            font-size: 22px; 
+            letter-spacing: 1px;
+        }
+        canvas { 
+            border: 10px solid white;
+            border-radius: 10px;
+            background: white;
+            display: block; 
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
+
 <div class="container">
-    <h2>Jelenlét Igazolás</h2>
-    <div id="timer">Kód frissül: -- mp múlva</div>
+    <div id="timer">FRISSÍTÉS: -- mp</div>
     <canvas id="qr-code"></canvas>
-    <div id="qr-info">Inicializálás...</div>
 </div>
+
 <script>
     const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!"; 
     const IDO_ABLAK_MASODPERC = 30;
     
-    // Várunk, amíg a QR-kód generáló script teljesen betöltődik
     window.onload = function() {
-        const qr = new QRious({ element: document.getElementById('qr-code'), size: 260 });
+        const qr = new QRious({ element: document.getElementById('qr-code'), size: 280 });
         
         async function sha256(szoveg) {
             const msgBuffer = new TextEncoder().encode(szoveg);
@@ -42,18 +69,20 @@
             const aktualisBlokk = Math.floor(epochIdo / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
             const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
             const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
-            const qrTartalom = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
             
-            qr.value = qrTartalom;
-            document.getElementById('qr-info').innerText = `Beolvasandó adat:\n${qrTartalom}`;
+            // Az app ezt a szöveget fogja beolvasni a háttérben
+            qr.value = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
         }
         
         function visszaszamlaloFrissites() {
             const most = new Date();
             const masodperc = most.getSeconds();
             const hatraVan = IDO_ABLAK_MASODPERC - (masodperc % IDO_ABLAK_MASODPERC);
-            document.getElementById('timer').innerText = `Kód frissül: ${hatraVan} mp múlva`;
-            if (hatraVan === IDO_ABLAK_MASODPERC || document.getElementById('qr-info').innerText.includes("Inicializálás")) {
+            
+            document.getElementById('timer').innerText = `FRISSÍTÉS: ${hatraVan} MP`;
+            
+            // Kód frissítése a ciklus elején vagy ha még nincs beállítva
+            if (hatraVan === IDO_ABLAK_MASODPERC || qr.value === "") {
                 frissitRendszer();
             }
         }
@@ -62,5 +91,6 @@
         visszaszamlaloFrissites();
     };
 </script>
+
 </body>
 </html>
