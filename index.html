@@ -59,7 +59,7 @@
 </div>
 
 <script>
-    const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!"; 
+    const FIX_SZOVEG = "KapCarKsz";
     const IDO_ABLAK_MASODPERC = 30;
     let utolsoBlokk = 0;
     let qrObjektum = null;
@@ -84,21 +84,29 @@
         }
     }
 
-    // SHA-256 generátor modul
-    async function sha256(szoveg) {
-        const msgBuffer = new TextEncoder().encode(szoveg);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-    
-    async function frissitRendszer(aktualisBlokk) {
-        const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
-        const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
-        
-        // Javítva: a blokk értéke most már helyesen van a sablon-literálba fűzve
-        const qrTartalom = `https://ceg.hu/beleptetes?b=${aktualisBlokk}&h=${biztonsagiHash.substring(0,8)}`;
-        
+    // Dátum + idő + dinamikus ellenőrzőkód összeállítása
+    function frissitRendszer(most) {
+        const ev = most.getFullYear();
+        const honap = String(most.getMonth() + 1).padStart(2, '0');
+        const nap = String(most.getDate()).padStart(2, '0');
+        const ora = most.getHours();
+        const perc = most.getMinutes();
+        const masodperc = Math.floor(most.getSeconds() / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
+
+        const datumSzoveg = `${ev}.${honap}.${nap}.`;
+        const idoSzoveg = `${String(ora).padStart(2, '0')}:${String(perc).padStart(2, '0')}:${String(masodperc).padStart(2, '0')}`;
+
+        // Dátumszám és időszám szorzata adja az ellenőrzőkód alapját
+        const datumSzam = ev * 10000 + (most.getMonth() + 1) * 100 + most.getDate();
+        const idoSzam = ora * 10000 + perc * 100 + masodperc;
+        const szorzat = datumSzam * idoSzam;
+
+        // A szorzat utolsó 6 számjegye + fix szöveg = ellenőrzőkód
+        const szorzatVeg = String(szorzat).slice(-6).padStart(6, '0');
+        const ellenorzoKod = `${szorzatVeg}${FIX_SZOVEG}`;
+
+        const qrTartalom = `${datumSzoveg} ${idoSzoveg} ${ellenorzoKod}`;
+
         rajzoljSzabvanyosQR(qrTartalom);
     }
     
@@ -114,7 +122,7 @@
         
         if (aktualisBlokk !== utolsoBlokk) {
             utolsoBlokk = aktualisBlokk;
-            frissitRendszer(aktualisBlokk);
+            frissitRendszer(most);
         }
     }
     
