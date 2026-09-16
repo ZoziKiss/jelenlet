@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beléptető Rendszer</title>
-    <!-- JAVÍTOTT SOR: Most már a teljes elérést használjuk -->
     <script src="https://unpkg.com"></script>
     <style>
-        /* Modern, sötét dizájn, hogy szoftvernek tűnjön */
         body { 
             font-family: Arial, sans-serif; 
             text-align: center; 
@@ -45,7 +43,7 @@
 <body>
 
 <div class="container">
-    <div id="timer">FRISSÍTÉS: -- mp</div>
+    <div id="timer">FRISSÍTÉS: -- MP</div>
     <canvas id="qr-code"></canvas>
 </div>
 
@@ -70,7 +68,6 @@
             const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
             const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
             
-            // Az app ezt a szöveget fogja beolvasni a háttérben
             qr.value = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
         }
         
@@ -81,7 +78,6 @@
             
             document.getElementById('timer').innerText = `FRISSÍTÉS: ${hatraVan} MP`;
             
-            // Kód frissítése a ciklus elején vagy ha még nincs beállítva
             if (hatraVan === IDO_ABLAK_MASODPERC || qr.value === "") {
                 frissitRendszer();
             }
