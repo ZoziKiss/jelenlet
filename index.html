@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beléptető Rendszer</title>
-    <script src="https://unpkg.com"></script>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -31,14 +30,16 @@
             font-size: 22px; 
             letter-spacing: 1px;
         }
-        canvas { 
+        /* A QR-kód képkeret stílusa */
+        #qr-image { 
             border: 10px solid white;
             border-radius: 10px;
             background: white;
             display: block; 
             margin: 0 auto;
+            width: 280px;
+            height: 280px;
         }
-        /* Verziószám stílusa */
         #version {
             color: #555560;
             font-size: 12px;
@@ -51,50 +52,56 @@
 
 <div class="container">
     <div id="timer">FRISSÍTÉS: -- MP</div>
-    <canvas id="qr-code"></canvas>
-    <!-- IDE KERÜL A VERZIÓSZÁM -->
-    <div id="version">v20260916.1408</div>
+    <!-- Canvas helyett mostantól egy sima képobjektumot használunk -->
+    <img id="qr-image" src="" alt="QR kód betöltése..." />
+    <div id="version">v20260916.1450</div>
 </div>
 
 <script>
     const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!"; 
     const IDO_ABLAK_MASODPERC = 30;
+    let utolsoBlokk = 0;
     
-    window.onload = function() {
-        const qr = new QRious({ element: document.getElementById('qr-code'), size: 280 });
+    // SHA-256 hash generáló funkció
+    async function sha256(szoveg) {
+        const msgBuffer = new TextEncoder().encode(szoveg);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    async function frissitRendszer(aktualisBlokk) {
+        const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
+        const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
         
-        async function sha256(szoveg) {
-            const msgBuffer = new TextEncoder().encode(szoveg);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        // Az app által beolvasandó tiszta szöveges tartalom
+        const qrTartalom = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
+        
+        // Google biztonságos API segítségével azonnal generálunk egy QR-kód képet a szövegből
+        const kodoltTartalom = encodeURIComponent(qrTartalom);
+        document.getElementById('qr-image').src = `https://googleapis.com{kodoltTartalom}&choe=UTF-8`;
+    }
+    
+    function visszaszamlaloFrissites() {
+        const most = new Date();
+        const epochIdo = Math.floor(most.getTime() / 1000);
+        const aktualisBlokk = Math.floor(epochIdo / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
+        
+        const masodperc = most.getSeconds();
+        const hatraVan = IDO_ABLAK_MASODPERC - (masodperc % IDO_ABLAK_MASODPERC);
+        
+        document.getElementById('timer').innerText = `FRISSÍTÉS: ${hatraVan} MP`;
+        
+        // Ha új 30 másodperces blokkba léptünk, frissítjük a QR-kódot
+        if (aktualisBlokk !== utolsoBlokk) {
+            utolsoBlokk = aktualisBlokk;
+            frissitRendszer(aktualisBlokk);
         }
-        
-        async function frissitRendszer() {
-            const most = new Date();
-            const epochIdo = Math.floor(most.getTime() / 1000);
-            const aktualisBlokk = Math.floor(epochIdo / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
-            const nyersBiztonsagiAlap = `${aktualisBlokk}-${TITKOS_KULCS}`;
-            const biztonsagiHash = await sha256(nyersBiztonsagiAlap);
-            
-            qr.value = `TIME:${aktualisBlokk}|HASH:${biztonsagiHash}`;
-        }
-        
-        function visszaszamlaloFrissites() {
-            const most = new Date();
-            const masodperc = most.getSeconds();
-            const hatraVan = IDO_ABLAK_MASODPERC - (masodperc % IDO_ABLAK_MASODPERC);
-            
-            document.getElementById('timer').innerText = `FRISSÍTÉS: ${hatraVan} MP`;
-            
-            if (hatraVan === IDO_ABLAK_MASODPERC || qr.value === "") {
-                frissitRendszer();
-            }
-        }
-        
-        setInterval(visszaszamlaloFrissites, 1000);
-        visszaszamlaloFrissites();
-    };
+    }
+    
+    // Ez a kód azonnal elindul, nem vár külső letöltésekre
+    setInterval(visszaszamlaloFrissites, 1000);
+    visszaszamlaloFrissites();
 </script>
 
 </body>
