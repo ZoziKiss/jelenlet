@@ -55,7 +55,7 @@
 <div class="container">
     <div id="timer">FRISSÍTÉS: -- MP</div>
     <div id="qrcode-box"></div>
-    <div id="version">v20260916.1635</div>
+    <div id="version">v20260916.1639</div>
 </div>
 
 <script>
@@ -94,7 +94,7 @@
         const masodperc = Math.floor(most.getSeconds() / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
 
         const datumSzoveg = `${ev}.${honap}.${nap}.`;
-        const idoSzoveg = `${String(ora).padStart(2, '0')}:${String(perc).padStart(2, '0')}:${String(masodperc).padStart(2, '0')}`;
+        const idoSzoveg = `${String(ora).padStart(2, '0')}:${String(perc).padStart(2, '0')}`;
 
         // Dátumszám és időszám szorzata adja az ellenőrzőkód alapját
         const datumSzam = ev * 10000 + (most.getMonth() + 1) * 100 + most.getDate();
