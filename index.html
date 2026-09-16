@@ -55,11 +55,15 @@
 <div class="container">
     <div id="timer">FRISSÍTÉS: -- MP</div>
     <div id="qrcode-box"></div>
-    <div id="version">v20260916.1646</div>
+    <div id="version">v20260916.1649</div>
 </div>
 
 <script>
-    const TITKOS_KULCS = "SzuperTitkosCegesKulcs123!";
+    // A kulcs Base64-kódolva szerepel, hogy Ctrl+U-val ránézve ne legyen
+    // azonnal, nyílt szövegként olvasható. FIGYELEM: ez nem valódi
+    // titkosítás, csak elrejti a kulcsot a felületes rátekintés elől.
+    const TITKOS_KULCS_B64 = "U3p1cGVyVGl0a29zQ2VnZXNLdWxjczEyMyE=";
+    const TITKOS_KULCS = atob(TITKOS_KULCS_B64);
     const FIX_SZOVEG = "KapCarKsz";
     const IDO_ABLAK_MASODPERC = 30;
     let utolsoBlokk = 0;
