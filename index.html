@@ -24,6 +24,13 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
             display: inline-block;
         }
+        #cegnev {
+            color: #e4e4e7;
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
         #timer { 
             color: #ff4757; 
             font-weight: bold; 
@@ -48,14 +55,155 @@
             margin-top: 20px;
             font-family: monospace;
         }
+        #login-box {
+            background: #1e1e24;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 260px;
+        }
+        #login-box h2 {
+            color: #e4e4e7;
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        #jelszo-input {
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #33333c;
+            background: #121214;
+            color: #e4e4e7;
+            font-size: 16px;
+            outline: none;
+        }
+        #jelszo-input:focus {
+            border-color: #ff4757;
+        }
+        #belepes-gomb {
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: none;
+            background: #ff4757;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #belepes-gomb:hover {
+            background: #e63e4c;
+        }
+        #hiba-uzenet {
+            color: #ff4757;
+            font-size: 13px;
+            min-height: 16px;
+            text-align: center;
+        }
+        .rejtett {
+            display: none !important;
+        }
+        #kodos-gomb {
+            margin-top: 20px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            background: #2ecc71;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+        #kodos-gomb:hover {
+            background: #27ae60;
+        }
+        #kod-box {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 260px;
+        }
+        #kod-box h2 {
+            color: #e4e4e7;
+            margin: 0;
+            font-size: 17px;
+        }
+        #szemelyi-kod-input {
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #33333c;
+            background: #121214;
+            color: #e4e4e7;
+            font-size: 16px;
+            outline: none;
+        }
+        #szemelyi-kod-input:focus {
+            border-color: #2ecc71;
+        }
+        #kod-kuldes-gomb {
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: none;
+            background: #2ecc71;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #kod-kuldes-gomb:hover {
+            background: #27ae60;
+        }
+        #megse-gomb {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid #33333c;
+            background: transparent;
+            color: #9a9aa4;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #megse-gomb:hover {
+            border-color: #555560;
+            color: #e4e4e7;
+        }
+        #kod-uzenet {
+            font-size: 14px;
+            min-height: 18px;
+            text-align: center;
+            color: #2ecc71;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="timer">FRISSÍTÉS: -- MP</div>
-    <div id="qrcode-box"></div>
-    <div id="version">v20260916.1649</div>
+<div id="login-box">
+    <h2>Belépés szükséges</h2>
+    <input type="password" id="jelszo-input" placeholder="Jelszó" autocomplete="off">
+    <button id="belepes-gomb">Belépés</button>
+    <div id="hiba-uzenet"></div>
+</div>
+
+<div class="container rejtett" id="fo-tartalom">
+    <div id="cegnev">Kaposvár-Car Kft.</div>
+
+    <div id="fo-nezet">
+        <div id="timer">--:--:--</div>
+        <div id="qrcode-box"></div>
+        <div id="version">v20260916.1830</div>
+        <button id="kodos-gomb">KÓDOS BELÉPÉS</button>
+    </div>
+
+    <div id="kod-box" class="rejtett">
+        <h2>Add meg a kódod</h2>
+        <input type="text" id="szemelyi-kod-input" placeholder="Személyi kód" autocomplete="off">
+        <button id="kod-kuldes-gomb">Küldés</button>
+        <div id="kod-uzenet"></div>
+        <button id="megse-gomb">Mégse</button>
+    </div>
 </div>
 
 <script>
@@ -130,28 +278,124 @@
         const qrTartalom = `${datumSzoveg} ${idoSzoveg} ${ellenorzoKod}`;
 
         rajzoljSzabvanyosQR(qrTartalom);
+
+        // A verziószám mindig az éppen generált kód időpontját mutatja: VÉÉÉÉHHNN.OOPP
+        const verzioSzoveg = `V${ev}${honap}${nap}.${String(ora).padStart(2, '0')}${String(perc).padStart(2, '0')}`;
+        document.getElementById('version').innerText = verzioSzoveg;
     }
     
     function visszaszamlaloFrissites() {
         const most = new Date();
         const epochIdo = Math.floor(most.getTime() / 1000);
         const aktualisBlokk = Math.floor(epochIdo / IDO_ABLAK_MASODPERC) * IDO_ABLAK_MASODPERC;
-        
-        const masodperc = most.getSeconds();
-        const hatraVan = IDO_ABLAK_MASODPERC - (masodperc % IDO_ABLAK_MASODPERC);
-        
-        document.getElementById('timer').innerText = `FRISSÍTÉS: ${hatraVan} MP`;
-        
+
+        // Valós idejű óra HH:MM:SS formátumban
+        const oraSzov = String(most.getHours()).padStart(2, '0');
+        const percSzov = String(most.getMinutes()).padStart(2, '0');
+        const masodpercSzov = String(most.getSeconds()).padStart(2, '0');
+        document.getElementById('timer').innerText = `${oraSzov}:${percSzov}:${masodpercSzov}`;
+
         if (aktualisBlokk !== utolsoBlokk) {
             utolsoBlokk = aktualisBlokk;
             frissitRendszer(most);
         }
     }
     
-    window.onload = function() {
-        setInterval(visszaszamlaloFrissites, 1000);
-        visszaszamlaloFrissites();
-    };
+    // A jelszó SHA-256 hash-e van csak elmentve, a jelszó maga sehol
+    // nincs nyílt szövegként a kódban.
+    const JELSZO_HASH = "30555e939728e60871ec9e6baae257e03790a5a0cca34518a9c3661b6b41a5ee";
+
+    async function sha256Sima(szoveg) {
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(szoveg));
+        const byteTomb = Array.from(new Uint8Array(hashBuffer));
+        return byteTomb.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function belepesEllenorzese() {
+        const beirt = document.getElementById('jelszo-input').value;
+        const beirtHash = await sha256Sima(beirt);
+        const hibaUzenet = document.getElementById('hiba-uzenet');
+
+        if (beirtHash === JELSZO_HASH) {
+            document.getElementById('login-box').classList.add('rejtett');
+            document.getElementById('fo-tartalom').classList.remove('rejtett');
+            sessionStorage.setItem('beleptetes_belepve', 'igen');
+            setInterval(visszaszamlaloFrissites, 1000);
+            visszaszamlaloFrissites();
+        } else {
+            hibaUzenet.innerText = 'Hibás jelszó, próbáld újra.';
+            document.getElementById('jelszo-input').value = '';
+        }
+    }
+
+    // Ide kell majd beírni a saját Google Apps Script Web App URL-edet
+    // (lásd a chat végén a beállítási útmutatót).
+    const GAS_WEBHOOK_URL = "IDE_MASOLD_BE_A_SAJAT_APPS_SCRIPT_URL_EDET";
+
+    async function kodBeleptetesKuldese() {
+        const kod = document.getElementById('szemelyi-kod-input').value.trim();
+        const uzenetDiv = document.getElementById('kod-uzenet');
+
+        if (!kod) {
+            uzenetDiv.style.color = '#ff4757';
+            uzenetDiv.innerText = 'Írj be egy kódot!';
+            return;
+        }
+
+        uzenetDiv.style.color = '#9a9aa4';
+        uzenetDiv.innerText = 'Küldés...';
+
+        try {
+            await fetch(GAS_WEBHOOK_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ kod: kod, idopont: new Date().toISOString() })
+            });
+            uzenetDiv.style.color = '#2ecc71';
+            uzenetDiv.innerText = '✓ Vettük!';
+            setTimeout(visszaAFoNezetre, 1800);
+        } catch (hiba) {
+            uzenetDiv.style.color = '#ff4757';
+            uzenetDiv.innerText = 'Hiba történt, próbáld újra.';
+        }
+    }
+
+    function visszaAFoNezetre() {
+        document.getElementById('kod-box').classList.add('rejtett');
+        document.getElementById('fo-nezet').classList.remove('rejtett');
+        document.getElementById('szemelyi-kod-input').value = '';
+        document.getElementById('kod-uzenet').innerText = '';
+    }
+
+    document.getElementById('kodos-gomb').addEventListener('click', function() {
+        document.getElementById('fo-nezet').classList.add('rejtett');
+        document.getElementById('kod-box').classList.remove('rejtett');
+        document.getElementById('szemelyi-kod-input').focus();
+    });
+
+    document.getElementById('kod-kuldes-gomb').addEventListener('click', kodBeleptetesKuldese);
+    document.getElementById('szemelyi-kod-input').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') kodBeleptetesKuldese();
+    });
+    document.getElementById('megse-gomb').addEventListener('click', visszaAFoNezetre);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ha ebben a böngésző-fülben már sikeresen beléptünk korábban, ne kérje újra
+        if (sessionStorage.getItem('beleptetes_belepve') === 'igen') {
+            document.getElementById('login-box').classList.add('rejtett');
+            document.getElementById('fo-tartalom').classList.remove('rejtett');
+            setInterval(visszaszamlaloFrissites, 1000);
+            visszaszamlaloFrissites();
+            return;
+        }
+
+        document.getElementById('belepes-gomb').addEventListener('click', belepesEllenorzese);
+        document.getElementById('jelszo-input').addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') belepesEllenorzese();
+        });
+    });
 </script>
 
 </body>
